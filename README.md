@@ -14,7 +14,7 @@ A  backend system for managing transportation requests, deliveries, drivers, and
 ## 🚀 Setup Instructions
 
 ### Prerequisites
-- Node.js (v18 or higher)
+- Node.js (v18 or higher) -> mine is v22
 - MySQL (v8.0 or higher)
 - npm or yarn package manager
 
@@ -34,28 +34,28 @@ A  backend system for managing transportation requests, deliveries, drivers, and
 3. **Environment Configuration**
    Create a `.env` file in the root directory:
    ```env
-   # Database Configuration
    DB_HOST=localhost
-   DB_PORT=3306
+   DB_USER=<your_username>
+   DB_PASSWORD=<your_password>
    DB_NAME=transport_dev
-   DB_USER=your_username
-   DB_PASSWORD=your_password
-   
-   # Application Configuration
+   DB_DIALECT=mysql
    PORT=3000
-   NODE_ENV=development
-   
+   DB_PORT=3306
+      
    # AI Integration (Google Gemini)
    GEMINI_API_KEY=your_gemini_api_key
    ```
 
 4. **Database Setup**
    ```bash
-   # Create database
-   mysql -u root -p -e "CREATE DATABASE transport_dev;"
+   # Create database (make sure you create before running it)
+   mysql -u root -p -e "CREATE DATABASE transport_dev;" 
    
    # Run migrations and seeding
-   npm run db:seed
+   make sure sequlize-cli is installed
+      npm install -g sequelize-cli
+   Then Run:
+      npx sequelize-cli db:seed:all
    ```
 
 5. **Start the application**
