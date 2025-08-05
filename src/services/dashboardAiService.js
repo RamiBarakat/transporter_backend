@@ -1,15 +1,8 @@
-const { GoogleGenerativeAI } = require("@google/generative-ai");
+const BaseAIService = require('./BaseAIService');
 
-class DashboardAIService {
+class DashboardAIService extends BaseAIService {
   constructor() {
-    this.apiKey = process.env.GEMINI_API_KEY;
-    
-    if (!this.apiKey) {
-      console.warn('Warning: GEMINI_API_KEY not found in environment variables. AI service will be disabled.');
-      this.genAI = null;
-    } else {
-      this.genAI = new GoogleGenerativeAI(this.apiKey);
-    }
+    super();
   }
 
   
@@ -17,40 +10,19 @@ class DashboardAIService {
    * Generates enhanced AI insights based on dashboard metrics data
    */
   async generateEnhancedAIInsights(insights, startDate, endDate) {
-    if (!this.genAI) {
+    if (!this.isConfigured()) {
       console.warn('AI service not configured, returning original insights');
       return insights;
     }
 
     try {
-      const model = this.genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
       const prompt = this.buildDashboardInsightPrompt(insights, startDate, endDate);
+      const aiResponse = await this.generateContent(prompt);
       
-      const result = await model.generateContent(prompt);
-      const response = await result.response;
-
-      if (!response || !response.text()) {
-        console.warn('Empty AI response, returning original insights');
-        return insights;
-      }
-
-      const aiResponse = response.text().trim();
       //console.log(aiResponse, "here is ai response");
       
-      // Try to parse the JSON response ai response
-      let additionalInsights = [];
-      try {
-        const jsonMatch = aiResponse.match(/\[[\s\S]*\]/);
-        if (jsonMatch) {
-          additionalInsights = JSON.parse(jsonMatch[0]);
-        } else {
-          additionalInsights = JSON.parse(aiResponse);
-        }
-      } catch (parseError) {
-        console.warn('Failed to parse AI JSON response:', parseError.message);
-        // Generate fallback AI insights
-        additionalInsights = this.generateFallbackAIInsights(insights);
-      }
+      // Parse the JSON response with fallback
+      const additionalInsights = this.parseJSONResponse(aiResponse, this.generateFallbackAIInsights(insights));
 
       const combinedInsights = [...insights.slice(0, 2), ...additionalInsights];
       return combinedInsights;
@@ -285,26 +257,7 @@ Return ONLY the JSON array, no other text.`;
   }
 
   async testConnection() {
-    if (!this.genAI) {
-      return { success: false, message: 'Dashboard AI Service is not configured (missing API key).' };
-    }
-    
-    try {
-      const model = this.genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
-      const result = await model.generateContent("Test dashboard AI connection");
-      const response = await result.response;
-      
-      if (response && response.text()) {
-        return { success: true, message: 'Dashboard AI service connected successfully.' };
-      }
-      
-      throw new Error("Received an empty response during test.");
-    } catch (error) {
-      return { 
-        success: false, 
-        message: `Dashboard AI service connection failed: ${error.message}` 
-      };
-    }
+    return super.testConnection('Dashboard AI Service');
   }
 }
 

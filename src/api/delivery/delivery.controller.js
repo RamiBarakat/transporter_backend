@@ -1,6 +1,6 @@
 const deliveryService = require('./delivery.service');
 const driverService = require('../driver/driver.service');
-const { validateRequest } = require('../driver/driver.validate');
+const { validateRequest, deliveryLoggingSchema, updateDeliverySchema, dateRangeSchema } = require('./delivery.validate');
 const { deliveryWithDriversSchema } = require('../driver/driver.validate');
 
 class DeliveryController {
@@ -290,7 +290,7 @@ class DeliveryController {
   }
 
   /**
-   * Update delivery
+   * Update delivery and driver ratings with delete/update/create functionality
    * PUT /api/deliveries/request/:requestId
    */
   async updateDelivery(req, res) {
@@ -303,29 +303,19 @@ class DeliveryController {
         });
       }
 
-      // Basic validation for required fields
-      const { delivery, drivers } = req.body;
-      
-      if (!delivery || !delivery.actualPickupDateTime || !delivery.actualTruckCount || delivery.invoiceAmount === undefined) {
+      // Validate request body using schema
+      const validation = validateRequest(req.body, updateDeliverySchema);
+      if (!validation.isValid) {
         return res.status(400).json({
           success: false,
-          message: 'Missing required delivery fields: actualPickupDateTime, actualTruckCount, invoiceAmount'
+          message: 'Validation failed',
+          errors: validation.errors
         });
       }
 
-      // Validate driver ratings if provided
-      if (drivers && drivers.length > 0) {
-        for (const driver of drivers) {
-          if (!driver.ratingId || !driver.ratings) {
-            return res.status(400).json({
-              success: false,
-              message: 'Invalid driver rating data: missing ratingId or ratings'
-            });
-          }
-        }
-      }
-
-      const result = await deliveryService.updateDelivery(requestId, req.body);
+      console.log(`Updating delivery for request ID: ${requestId}`);
+      
+      const result = await deliveryService.updateDelivery(requestId, validation.data);
 
       res.json({
         success: true,

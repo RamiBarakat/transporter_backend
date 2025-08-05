@@ -1,70 +1,31 @@
-const { GoogleGenerativeAI } = require("@google/generative-ai");
+const BaseAIService = require('./BaseAIService');
 
-class AIService {
+class AIService extends BaseAIService {
   constructor() {
-    this.apiKey = process.env.GEMINI_API_KEY;
-    
-    if (!this.apiKey) {
-      console.warn('Warning: GEMINI_API_KEY not found in environment variables. AI service will be disabled.');
-      this.genAI = null;
-    } else {
-      this.genAI = new GoogleGenerativeAI(this.apiKey);
-    }
+    super();
   }
 
 
   async generateDriverInsights(driverData) {
-    if (!this.genAI) {
-      throw new Error('Gemini AI service is not configured. Please provide a GEMINI_API_KEY.');
-    }
-
     try {
-      const model = this.genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
       const prompt = this.buildDriverInsightPrompt(driverData);
+      const aiResponse = await this.generateContent(prompt);
       
-      const result = await model.generateContent(prompt);
-      const response = await result.response;
-
-      if (!response || !response.text()) {
-        throw new Error('Received an empty response from the AI service.');
-      }
-
-      const aiResponse = response.text().trim();
       console.log('AI Response:', aiResponse);
 
-      // Try to parse the JSON response
-      try {
-        let cleanResponse = aiResponse;
-        if (aiResponse.includes('```json')) {
-          cleanResponse = aiResponse.replace(/```json\s*|\s*```/g, '');
-        } else if (aiResponse.includes('```')) {
-          cleanResponse = aiResponse.replace(/```\s*|\s*```/g, '');
-        }
+      // Parse the JSON response with fallback
+      const fallback = {
+        overall: 'AI analysis temporarily unavailable. Driver performance appears within normal parameters.',
+        strengths: 'Unable to generate detailed analysis at this time.',
+        recommendations: 'Please try again later or contact system administrator.',
+        risk: 'No significant risks identified based on available data.'
+      };
 
-        const jsonMatch = cleanResponse.match(/\{[\s\S]*\}/);
-        if (jsonMatch) {
-          const insights = JSON.parse(jsonMatch[0]);
-          return this.formatInsightsToString(insights);
-        } else {
-          // Try parsing the entire cleaned response
-          const insights = JSON.parse(cleanResponse.trim());
-          return this.formatInsightsToString(insights);
-        }
-      } catch (parseError) {
-        console.warn('Failed to parse AI JSON response:', parseError.message);
-        console.warn('Raw response:', aiResponse);
-        
-        const fallback = {
-          overall: 'AI analysis temporarily unavailable. Driver performance appears within normal parameters.',
-          strengths: 'Unable to generate detailed analysis at this time.',
-          recommendations: 'Please try again later or contact system administrator.',
-          risk: 'No significant risks identified based on available data.'
-        };
-        return this.formatInsightsToString(fallback);
-      }
+      const insights = this.parseJSONResponse(aiResponse, fallback);
+      return this.formatInsightsToString(insights);
 
     } catch (error) {
-      console.error('Gemini AI Service Error:', error.message);
+      console.error('Driver Insights AI Service Error:', error.message);
       
       const fallbackInsights = {
         overall: 'AI service temporarily unavailable. Driver performance data retrieved successfully.',
@@ -209,23 +170,7 @@ Focus on:
    * Test the AI service connection by sending a simple prompt.
    */
   async testConnection() {
-    if (!this.genAI) {
-        return { success: false, message: 'AI Service is not configured (missing API key).' };
-    }
-    try {
-      const model = this.genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
-      const result = await model.generateContent("Hello");
-      const response = await result.response;
-      if (response && response.text()) {
-        return { success: true, message: 'Gemini AI service connected successfully.' };
-      }
-      throw new Error("Received an empty response during test.");
-    } catch (error) {
-      return { 
-        success: false, 
-        message: `Gemini AI service connection failed: ${error.message}` 
-      };
-    }
+    return super.testConnection('Driver AI Service');
   }
 }
 

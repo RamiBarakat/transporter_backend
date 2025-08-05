@@ -418,7 +418,7 @@ class DeliveryService {
     }
   }
 
-  // Update delivery and driver ratings
+  // Update delivery and driver ratings with delete functionality
   async updateDelivery(requestId, updateData) {
     const transaction = await sequelize.transaction();
     
@@ -442,15 +442,60 @@ class DeliveryService {
         }, { transaction });
       }
 
-      // Update driver ratings
-      if (updateData.drivers && updateData.drivers.length > 0) {
-        for (const driverData of updateData.drivers) {
-          const driverRating = await DriverRating.findByPk(driverData.ratingId, {
+      // Handle driver ratings with delete/update/create functionality
+      if (updateData.drivers !== undefined) {
+        // Get all existing ratings for this delivery
+        const existingRatings = await DriverRating.findAll({
+          where: { deliveryId: delivery.id },
+          transaction
+        });
+
+        // Get submitted rating IDs (filter out null/undefined)
+        const submittedRatingIds = updateData.drivers
+          .map(d => d.ratingId)
+          .filter(Boolean);
+
+        // Find ratings to delete (existing ratings not in submitted data)
+        const ratingsToDelete = existingRatings.filter(rating => 
+          !submittedRatingIds.includes(rating.id)
+        );
+
+        // Delete removed drivers' ratings
+        if (ratingsToDelete.length > 0) {
+          await DriverRating.destroy({
+            where: {
+              id: ratingsToDelete.map(r => r.id)
+            },
             transaction
           });
+        }
 
-          if (driverRating) {
-            await driverRating.update({
+        // Update existing ratings and create new ones
+        for (const driverData of updateData.drivers) {
+          if (driverData.ratingId) {
+            // Update existing rating
+            const driverRating = await DriverRating.findByPk(driverData.ratingId, {
+              transaction
+            });
+
+            if (driverRating) {
+              await driverRating.update({
+                punctuality: driverData.ratings.punctuality,
+                professionalism: driverData.ratings.professionalism,
+                deliveryQuality: driverData.ratings.deliveryQuality,
+                communication: driverData.ratings.communication,
+                safety: driverData.ratings.safety,
+                policyCompliance: driverData.ratings.policyCompliance,
+                fuelEfficiency: driverData.ratings.fuelEfficiency,
+                comments: driverData.ratings.comments,
+                overallRating: driverData.ratings.overallRating
+              }, { transaction });
+            }
+          } else if (driverData.driver_id) {
+            // Create new rating for driver
+            await DriverRating.create({
+              deliveryId: delivery.id,
+              driverId: driverData.driver_id,
               punctuality: driverData.ratings.punctuality,
               professionalism: driverData.ratings.professionalism,
               deliveryQuality: driverData.ratings.deliveryQuality,

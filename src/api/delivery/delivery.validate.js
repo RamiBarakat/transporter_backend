@@ -91,6 +91,57 @@ const requestIdSchema = Joi.object({
   requestId: Joi.number().integer().positive().required()
 });
 
+// Update delivery validation schema
+const updateDeliverySchema = Joi.object({
+  delivery: Joi.object({
+    actualPickupDateTime: Joi.date().optional(),
+    actualTruckCount: Joi.number().integer().min(1).optional(),
+    invoiceAmount: Joi.number().positive().precision(2).optional(),
+    deliveryNotes: Joi.string().allow('').optional()
+  }).optional(),
+  
+  drivers: Joi.array().items(
+    Joi.object({
+      // Driver ID (always required for reference)
+      driver_id: Joi.number().integer().positive().required(),
+      
+      // Rating ID (optional - if provided, update existing rating; if not, create new)
+      ratingId: Joi.number().integer().positive().optional(),
+      
+      // Rating data (required for all drivers)
+      ratings: Joi.object({
+        punctuality: Joi.number().integer().min(1).max(5).required(),
+        professionalism: Joi.number().integer().min(1).max(5).required(),
+        deliveryQuality: Joi.number().integer().min(1).max(5).optional(),
+        communication: Joi.number().integer().min(1).max(5).optional(),
+        safety: Joi.number().integer().min(1).max(5).optional(),
+        policyCompliance: Joi.number().integer().min(1).max(5).optional(),
+        fuelEfficiency: Joi.number().integer().min(1).max(5).optional(),
+        comments: Joi.string().allow('').optional(),
+        overallRating: Joi.number().integer().min(1).max(5).required()
+      }).required()
+    }).custom((value, helpers) => {
+      // driver_id is always required
+      if (!value.driver_id) {
+        return helpers.error('any.custom', {
+          message: 'driver_id is required for all drivers'
+        });
+      }
+      
+      return value;
+    })
+  ).optional()
+}).custom((value, helpers) => {
+  // At least one of delivery or drivers must be provided
+  if (!value.delivery && !value.drivers) {
+    return helpers.error('any.custom', {
+      message: 'At least one of delivery data or drivers data must be provided'
+    });
+  }
+  
+  return value;
+});
+
 /**
  * Validate request data against schema
  * @param {Object} data - Data to validate
@@ -128,6 +179,7 @@ const validateRequest = (data, schema) => {
 module.exports = {
   validateRequest,
   deliveryLoggingSchema,
+  updateDeliverySchema,
   dateRangeSchema,
   requestIdSchema
 };
