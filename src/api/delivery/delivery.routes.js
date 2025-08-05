@@ -23,10 +23,34 @@ router.post('/:requestId/confirm', deliveryController.confirmDeliveryCompletion)
 // ============================================================================
 
 /**
- * Get delivery by request ID
+ * List all deliveries with pagination
+ * GET /api/deliveries?page=1&limit=10&startDate=2024-01-01&endDate=2024-01-31
+ */
+router.get('/', deliveryController.getAllDeliveries);
+
+/**
+ * Get delivery by ID
+ * GET /api/deliveries/:id
+ */
+router.get('/:id(\\d+)', deliveryController.getDeliveryById);
+
+/**
+ * Get delivery by request ID (full data with driver ratings)
  * GET /api/deliveries/request/:requestId
  */
 router.get('/request/:requestId', deliveryController.getDeliveryByRequestId);
+
+/**
+ * Get delivery for editing (simplified data)
+ * GET /api/deliveries/request/:requestId/edit
+ */
+router.get('/request/:requestId/edit', deliveryController.getDeliveryForEdit);
+
+/**
+ * Update delivery
+ * PUT /api/deliveries/request/:requestId
+ */
+router.put('/request/:requestId', deliveryController.updateDelivery);
 
 /**
  * Get delivery statistics

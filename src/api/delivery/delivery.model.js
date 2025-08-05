@@ -14,7 +14,11 @@ const Delivery = sequelize.define('Delivery', {
   requestId: {
     type: DataTypes.INTEGER,
     allowNull: false,
-    field: 'request_id'
+    field: 'request_id',
+    references: {
+      model: 'transportation_requests',
+      key: 'id'
+    }
   },
   actualPickupDateTime: {
     type: DataTypes.DATE,
@@ -69,12 +73,20 @@ const DriverRating = sequelize.define('DriverRating', {
   deliveryId: {
     type: DataTypes.INTEGER,
     allowNull: false,
-    field: 'delivery_id'
+    field: 'delivery_id',
+    references: {
+      model: 'deliveries',
+      key: 'id'
+    }
   },
   driverId: {
     type: DataTypes.INTEGER,
     allowNull: false,
-    field: 'driver_id'
+    field: 'driver_id',
+    references: {
+      model: 'drivers',
+      key: 'id'
+    }
   },
   punctuality: {
     type: DataTypes.INTEGER,
@@ -126,8 +138,9 @@ const DriverRating = sequelize.define('DriverRating', {
   }
 }, {
   tableName: 'driver_ratings',
-  timestamps: false,
+  timestamps: true,
   createdAt: 'created_at',
+  updatedAt: 'updated_at',
   paranoid: true,
   deletedAt: 'deleted_at'
 });

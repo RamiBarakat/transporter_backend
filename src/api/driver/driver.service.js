@@ -127,7 +127,7 @@ class DriverService {
       const offset = (parseInt(page) - 1) * parseInt(limit);
       
       const result = await Driver.findAndCountAll({
-        order: [['createdAt', 'DESC']],
+        order: [['created_at', 'DESC']],
         limit: parseInt(limit),
         offset: offset
       });

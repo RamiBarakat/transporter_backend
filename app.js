@@ -46,18 +46,23 @@ app.use('*', (req, res) => {
     });
 });
 
-// Start the server
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, async () => {
-    console.log(`Server is running on port ${PORT}`);
-    console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
-    
-    try {
-        await initModels();
-        console.log('Transportation Request Management API is ready!');
-        console.log(`API Documentation: http://localhost:${PORT}/api`);
-    } catch (error) {
-        console.error('Failed to initialize models:', error);
-        process.exit(1);
-    }
-});
+// Start the server only if not required by another module (like tests)
+if (require.main === module) {
+    const PORT = process.env.PORT || 3000;
+    app.listen(PORT, async () => {
+        console.log(`Server is running on port ${PORT}`);
+        console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
+        
+        try {
+            await initModels();
+            console.log('Transportation Request Management API is ready!');
+            console.log(`API Documentation: http://localhost:${PORT}/api`);
+        } catch (error) {
+            console.error('Failed to initialize models:', error);
+            process.exit(1);
+        }
+    });
+}
+
+// Export app for testing
+module.exports = app;

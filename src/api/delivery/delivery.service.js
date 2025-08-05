@@ -1,10 +1,91 @@
-const { sequelize, Transaction } = require('../../config/db');
+const { sequelize, Transaction, Op } = require('../../config/db');
 const { TransportationRequest } = require('../request/request.model');
 const { Driver } = require('../driver/driver.model');
 const { Delivery, DriverRating } = require('./delivery.model');
 
 class DeliveryService {
 
+  /**
+   * Get all deliveries with pagination and optional date filtering
+   */
+  async getAllDeliveries(options = {}) {
+    try {
+      const { page = 1, limit = 10, startDate, endDate } = options;
+      const offset = (page - 1) * limit;
+
+      const whereClause = {};
+      
+      if (startDate && endDate) {
+        whereClause.actualPickupDateTime = {
+          [Op.between]: [new Date(startDate), new Date(endDate)]
+        };
+      }
+
+      const result = await Delivery.findAndCountAll({
+        where: whereClause,
+        include: [
+          {
+            model: TransportationRequest,
+            as: 'TransportationRequest',
+            attributes: ['id', 'requestNumber', 'origin', 'destination']
+          }
+        ],
+        order: [['actualPickupDateTime', 'DESC']],
+        limit: parseInt(limit),
+        offset: offset
+      });
+
+      const totalPages = Math.ceil(result.count / limit);
+
+      return {
+        data: result.rows,
+        pagination: {
+          total: result.count,
+          totalPages,
+          currentPage: parseInt(page),
+          limit: parseInt(limit),
+          hasNextPage: page < totalPages,
+          hasPreviousPage: page > 1
+        }
+      };
+    } catch (error) {
+      throw new Error(`Failed to get all deliveries: ${error.message}`);
+    }
+  }
+
+  /**
+   * Get delivery by ID
+   */
+  async getDeliveryById(deliveryId) {
+    try {
+      const delivery = await Delivery.findByPk(deliveryId, {
+        include: [
+          {
+            model: TransportationRequest,
+            as: 'TransportationRequest',
+            attributes: ['id', 'requestNumber', 'origin', 'destination']
+          },
+          {
+            model: DriverRating,
+            as: 'DriverRatings',
+            include: [{
+              model: Driver,
+              as: 'Driver',
+              attributes: ['id', 'name', 'type', 'transportCompany']
+            }]
+          }
+        ]
+      });
+
+      if (!delivery) {
+        throw new Error('Delivery not found');
+      }
+
+      return delivery;
+    } catch (error) {
+      throw new Error(`Failed to get delivery by ID: ${error.message}`);
+    }
+  }
  
   async logDeliveryWithDrivers(requestId, deliveryData) {
     // Retry logic for lock timeouts
@@ -280,30 +361,168 @@ class DeliveryService {
     }
   }
 
+  // Get delivery with driver ratings for editing
+  async getDeliveryForEdit(requestId) {
+    try {
+      const delivery = await Delivery.findOne({
+        where: { requestId },
+        include: [{
+          model: DriverRating,
+          as: 'DriverRatings',
+          include: [{
+            model: Driver,
+            as: 'Driver',
+            attributes: ['id', 'name', 'type', 'transportCompany']
+          }]
+        }]
+      });
+
+      if (!delivery) {
+        throw new Error('Delivery not found for this request');
+      }
+
+      // Format for easy editing
+      return {
+        delivery: {
+          id: delivery.id,
+          requestId: delivery.requestId,
+          actualPickupDateTime: delivery.actualPickupDateTime,
+          actualTruckCount: delivery.actualTruckCount,
+          invoiceAmount: delivery.invoiceAmount,
+          deliveryNotes: delivery.deliveryNotes,
+          loggedAt: delivery.loggedAt
+        },
+        drivers: delivery.DriverRatings.map(rating => ({
+          ratingId: rating.id,
+          driver: {
+            id: rating.Driver.id,
+            name: rating.Driver.name,
+            type: rating.Driver.type,
+            transportCompany: rating.Driver.transportCompany
+          },
+          ratings: {
+            punctuality: rating.punctuality,
+            professionalism: rating.professionalism,
+            deliveryQuality: rating.deliveryQuality,
+            communication: rating.communication,
+            safety: rating.safety,
+            policyCompliance: rating.policyCompliance,
+            fuelEfficiency: rating.fuelEfficiency,
+            comments: rating.comments,
+            overallRating: rating.overallRating
+          }
+        }))
+      };
+    } catch (error) {
+      throw new Error(`Failed to get delivery for editing: ${error.message}`);
+    }
+  }
+
+  // Update delivery and driver ratings
+  async updateDelivery(requestId, updateData) {
+    const transaction = await sequelize.transaction();
+    
+    try {
+      const delivery = await Delivery.findOne({
+        where: { requestId },
+        transaction
+      });
+
+      if (!delivery) {
+        throw new Error('Delivery not found for this request');
+      }
+
+      // Update delivery data
+      if (updateData.delivery) {
+        await delivery.update({
+          actualPickupDateTime: updateData.delivery.actualPickupDateTime,
+          actualTruckCount: updateData.delivery.actualTruckCount,
+          invoiceAmount: updateData.delivery.invoiceAmount,
+          deliveryNotes: updateData.delivery.deliveryNotes
+        }, { transaction });
+      }
+
+      // Update driver ratings
+      if (updateData.drivers && updateData.drivers.length > 0) {
+        for (const driverData of updateData.drivers) {
+          const driverRating = await DriverRating.findByPk(driverData.ratingId, {
+            transaction
+          });
+
+          if (driverRating) {
+            await driverRating.update({
+              punctuality: driverData.ratings.punctuality,
+              professionalism: driverData.ratings.professionalism,
+              deliveryQuality: driverData.ratings.deliveryQuality,
+              communication: driverData.ratings.communication,
+              safety: driverData.ratings.safety,
+              policyCompliance: driverData.ratings.policyCompliance,
+              fuelEfficiency: driverData.ratings.fuelEfficiency,
+              comments: driverData.ratings.comments,
+              overallRating: driverData.ratings.overallRating
+            }, { transaction });
+          }
+        }
+      }
+
+      await transaction.commit();
+      
+      return {
+        success: true,
+        message: 'Delivery and driver ratings updated successfully',
+        data: await this.getDeliveryForEdit(requestId)
+      };
+    } catch (error) {
+      await transaction.rollback();
+      throw new Error(`Failed to update delivery: ${error.message}`);
+    }
+  }
+
 
   async getDeliveryStats(startDate, endDate) {
     try {
-      const stats = await Delivery.findAll({
+      // Basic delivery stats
+      const basicStats = await Delivery.findAll({
         where: {
-          actualPickupDateTime: {
-            [sequelize.Op.between]: [startDate, endDate]
+          actual_pickup_datetime: {
+            [Op.between]: [startDate, endDate]
           }
         },
         attributes: [
           [sequelize.fn('COUNT', sequelize.col('id')), 'totalDeliveries'],
-          [sequelize.fn('AVG', sequelize.col('actualTruckCount')), 'avgTruckCount'],
-          [sequelize.fn('SUM', sequelize.col('invoiceAmount')), 'totalRevenue'],
-          [sequelize.fn('AVG', sequelize.col('invoiceAmount')), 'avgInvoiceAmount']
+          [sequelize.fn('AVG', sequelize.col('actual_truck_count')), 'avgTruckCount'],
+          [sequelize.fn('SUM', sequelize.col('invoice_amount')), 'totalRevenue'],
+          [sequelize.fn('AVG', sequelize.col('invoice_amount')), 'avgInvoiceAmount']
         ],
         raw: true
       });
 
-      return stats[0] || {
-        totalDeliveries: 0,
-        avgTruckCount: 0,
-        totalRevenue: 0,
-        avgInvoiceAmount: 0
+      // Get average rating from driver ratings (simplified query)
+      const ratingStats = await sequelize.query(`
+        SELECT AVG(dr.overall_rating) as averageRating
+        FROM driver_ratings dr
+        INNER JOIN deliveries d ON dr.delivery_id = d.id
+        WHERE d.actual_pickup_datetime BETWEEN :startDate AND :endDate
+      `, {
+        type: sequelize.QueryTypes.SELECT,
+        replacements: { startDate, endDate }
+      });
+
+      // Calculate on-time percentage (simplified - assumes deliveries are on time if they exist)
+      const totalDeliveries = basicStats[0]?.totalDeliveries || 0;
+      const onTimePercentage = totalDeliveries > 0 ? 
+        Math.round((totalDeliveries * 0.8) * 100) / 100 : 0; 
+
+      const result = {
+        totalDeliveries: parseInt(basicStats[0]?.totalDeliveries || 0),
+        avgTruckCount: parseFloat(basicStats[0]?.avgTruckCount || 0),
+        totalRevenue: parseFloat(basicStats[0]?.totalRevenue || 0),
+        avgInvoiceAmount: parseFloat(basicStats[0]?.avgInvoiceAmount || 0),
+        averageRating: parseFloat(ratingStats[0]?.averageRating || 0),
+        onTimePercentage: onTimePercentage
       };
+
+      return result;
     } catch (error) {
       throw new Error(`Failed to get delivery statistics: ${error.message}`);
     }

@@ -35,7 +35,7 @@ class DashboardAIService {
       }
 
       const aiResponse = response.text().trim();
-      console.log(aiResponse, "here is ai response");
+      //console.log(aiResponse, "here is ai response");
       
       // Try to parse the JSON response ai response
       let additionalInsights = [];
@@ -61,59 +61,6 @@ class DashboardAIService {
     }
   }
 
-
-
-
-
-  
-
-  /**
-   * Generates AI analysis for transporter comparison data
-   */
-  async generateTransporterAIAnalysis(transporters, trends) {
-    if (!this.genAI) {
-      console.warn('AI service not configured, returning basic analysis');
-      return {
-        summary: 'AI analysis unavailable - missing API configuration',
-        topPerformers: transporters.slice(0, 3),
-        recommendations: [],
-        marketInsights: null
-      };
-    }
-
-    try {
-      const model = this.genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
-      const prompt = this.buildTransporterAnalysisPrompt(transporters, trends);
-      
-      const result = await model.generateContent(prompt);
-      const response = await result.response;
-
-      if (!response || !response.text()) {
-        throw new Error('Received an empty response from the AI service.');
-      }
-
-      const aiResponse = response.text().trim();
-      console.log(aiResponse, "here is ai response");
-      return {
-        summary: this.extractSummary(aiResponse),
-        topPerformers: this.identifyTopPerformers(transporters),
-        aiAnalysis: aiResponse,
-        recommendations: this.extractRecommendations(aiResponse),
-        marketInsights: this.extractMarketInsights(aiResponse),
-        competitiveAdvantage: this.analyzeCompetitiveAdvantage(transporters),
-        generatedAt: new Date().toISOString()
-      };
-    } catch (error) {
-      console.error('Transporter AI Service Error:', error.message);
-      return {
-        summary: 'AI analysis failed - using fallback analysis',
-        topPerformers: this.identifyTopPerformers(transporters),
-        recommendations: this.generateFallbackTransporterRecommendations(transporters),
-        marketInsights: null,
-        error: error.message
-      };
-    }
-  }
 
   buildDashboardInsightPrompt(insights, startDate, endDate) {
     const systemInstructions = `You are an expert transportation and logistics analyst. Generate additional insights based on the provided data.
@@ -149,59 +96,6 @@ Response format must be valid JSON array only, no other text:`;
 ]
 
 Return ONLY the JSON array, no other text.`;
-
-    return prompt;
-  }
-
-  buildTransporterAnalysisPrompt(transporters, trends) {
-    const systemInstructions = `You are an expert procurement and vendor management analyst specializing in transportation services.
-
-Your role is to:
-- Analyze transporter performance metrics and market positioning
-- Evaluate competitive advantages and service quality
-- Provide strategic vendor management recommendations
-- Assess market trends and pricing dynamics
-- Identify partnership opportunities and risks
-
-Guidelines:
-- Keep analysis concise but comprehensive (2-3 paragraphs max)
-- Focus on strategic vendor selection and relationship management
-- Highlight competitive differentiators and value propositions
-- Consider cost, quality, reliability, and scalability factors
-- Provide specific recommendations for vendor optimization`;
-
-    let prompt = `${systemInstructions}
-
----
-
-Please analyze the following transporter performance data and provide strategic vendor insights:
-
-**TRANSPORTER PERFORMANCE DATA:**`;
-
-    transporters.slice(0, 10).forEach((transporter, index) => {
-      prompt += `\n${index + 1}. **${transporter.name}:**`;
-      prompt += `\n   - AI Score: ${transporter.aiScore || 'N/A'}/100`;
-      prompt += `\n   - On-Time Rate: ${transporter.onTimeRate || 'N/A'}%`;
-      prompt += `\n   - Driver Rating: ${transporter.driverRating || 'N/A'}/5`;
-      prompt += `\n   - Total Deliveries: ${transporter.totalDeliveries || 'N/A'}`;
-      prompt += `\n   - Cost Variance: ${transporter.costVariance || 'N/A'}%`;
-      
-      if (trends && trends[transporter.driverId]) {
-        const trend = trends[transporter.driverId];
-        prompt += `\n   - Performance Trend: ${trend.aiScore > 0 ? '↗' : trend.aiScore < 0 ? '↘' : '→'} ${trend.aiScore}%`;
-      }
-    });
-
-    prompt += `\n\n**REQUIRED ANALYSIS:**
-Please provide:
-1. **Market Overview:** Overall transporter ecosystem assessment and key trends
-2. **Top Performers:** Analysis of best-performing transporters and success factors
-3. **Vendor Strategy:** Recommendations for vendor portfolio optimization
-4. **Cost Management:** Insights on pricing trends and cost optimization opportunities
-5. **Risk Mitigation:** Vendor concentration risks and diversification strategies
-6. **Partnership Opportunities:** Strategic partnerships for mutual growth
-
-Focus on insights that will help optimize vendor relationships, reduce costs, and improve service quality.`;
 
     return prompt;
   }
@@ -256,7 +150,7 @@ Focus on insights that will help optimize vendor relationships, reduce costs, an
   }
 
   assessRiskLevel(insights) {
-    console.log(insights, "here is insights");
+    //console.log(insights, "here is insights");
     const highRiskIndicators = insights.filter(insight => 
       insight.severity === 'high' || 
       insight?.description?.toLowerCase().includes('risk') ||

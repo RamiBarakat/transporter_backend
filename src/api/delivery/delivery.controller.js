@@ -6,6 +6,84 @@ const { deliveryWithDriversSchema } = require('../driver/driver.validate');
 class DeliveryController {
 
   /**
+   * Get all deliveries with pagination
+   * GET /api/deliveries?page=1&limit=10&startDate=2024-01-01&endDate=2024-01-31
+   */
+  async getAllDeliveries(req, res) {
+    try {
+      const { page = 1, limit = 10, startDate, endDate } = req.query;
+      
+      const options = {
+        page: parseInt(page),
+        limit: parseInt(limit)
+      };
+
+      if (startDate) options.startDate = startDate;
+      if (endDate) options.endDate = endDate;
+
+      const result = await deliveryService.getAllDeliveries(options);
+
+      return res.status(200).json({
+        success: true,
+        message: 'Deliveries retrieved successfully',
+        data: result
+      });
+
+    } catch (error) {
+      console.error('Get all deliveries error:', error);
+      
+      return res.status(500).json({
+        success: false,
+        message: 'Failed to retrieve deliveries',
+        error: error.message
+      });
+    }
+  }
+
+  /**
+   * Get delivery by ID
+   * GET /api/deliveries/:id
+   */
+  async getDeliveryById(req, res) {
+    try {
+      const deliveryId = parseInt(req.params.id);
+
+      if (isNaN(deliveryId)) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid delivery ID'
+        });
+      }
+
+      const delivery = await deliveryService.getDeliveryById(deliveryId);
+
+      return res.status(200).json({
+        success: true,
+        message: 'Delivery retrieved successfully',
+        data: delivery
+      });
+
+    } catch (error) {
+      console.error('Get delivery by ID error:', error);
+      
+      if (error.message.includes('not found')) {
+        return res.status(404).json({
+          success: false,
+          error: {
+            message: 'Delivery not found'
+          }
+        });
+      }
+      
+      return res.status(500).json({
+        success: false,
+        message: 'Failed to retrieve delivery',
+        error: error.message
+      });
+    }
+  }
+
+  /**
    * Log delivery completion with drivers and ratings
    * POST /api/deliveries/:requestId/log
    */
@@ -172,6 +250,116 @@ class DeliveryController {
   }
 
   /**
+   * Get delivery for editing (simplified data without driver ratings)
+   * GET /api/deliveries/request/:requestId/edit
+   */
+  async getDeliveryForEdit(req, res) {
+    try {
+      const requestId = parseInt(req.params.requestId);
+      if (isNaN(requestId)) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid request ID'
+        });
+      }
+
+      const delivery = await deliveryService.getDeliveryForEdit(requestId);
+
+      res.json({
+        success: true,
+        data: delivery,
+        message: 'Delivery data for editing retrieved successfully'
+      });
+
+    } catch (error) {
+      console.error('Get delivery for edit error:', error);
+      
+      if (error.message.includes('not found')) {
+        return res.status(404).json({
+          success: false,
+          message: 'Delivery not found for this request'
+        });
+      }
+
+      res.status(500).json({
+        success: false,
+        message: 'Failed to get delivery for editing',
+        error: error.message
+      });
+    }
+  }
+
+  /**
+   * Update delivery
+   * PUT /api/deliveries/request/:requestId
+   */
+  async updateDelivery(req, res) {
+    try {
+      const requestId = parseInt(req.params.requestId);
+      if (isNaN(requestId)) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid request ID'
+        });
+      }
+
+      // Basic validation for required fields
+      const { delivery, drivers } = req.body;
+      
+      if (!delivery || !delivery.actualPickupDateTime || !delivery.actualTruckCount || delivery.invoiceAmount === undefined) {
+        return res.status(400).json({
+          success: false,
+          message: 'Missing required delivery fields: actualPickupDateTime, actualTruckCount, invoiceAmount'
+        });
+      }
+
+      // Validate driver ratings if provided
+      if (drivers && drivers.length > 0) {
+        for (const driver of drivers) {
+          if (!driver.ratingId || !driver.ratings) {
+            return res.status(400).json({
+              success: false,
+              message: 'Invalid driver rating data: missing ratingId or ratings'
+            });
+          }
+        }
+      }
+
+      const result = await deliveryService.updateDelivery(requestId, req.body);
+
+      res.json({
+        success: true,
+        data: result.data,
+        message: result.message
+      });
+
+    } catch (error) {
+      console.error('Update delivery error:', error);
+      
+      if (error.message.includes('not found')) {
+        return res.status(404).json({
+          success: false,
+          message: 'Delivery not found'
+        });
+      }
+
+      if (error.message.includes('Validation') || error.name === 'SequelizeValidationError') {
+        return res.status(400).json({
+          success: false,
+          message: 'Validation failed',
+          error: error.message
+        });
+      }
+
+      res.status(500).json({
+        success: false,
+        message: 'Failed to update delivery',
+        error: error.message
+      });
+    }
+  }
+
+  /**
    * Get delivery statistics
    * GET /api/deliveries/stats?startDate=2024-01-01&endDate=2024-01-31
    */
@@ -179,14 +367,14 @@ class DeliveryController {
     try {
       const { startDate, endDate } = req.query;
 
-      if (!startDate || !endDate) {
-        return res.status(400).json({
-          success: false,
-          message: 'Start date and end date are required'
-        });
-      }
+      // If no dates provided, use a default range (last 30 days)
+      const defaultEndDate = new Date().toISOString().split('T')[0];
+      const defaultStartDate = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
 
-      const stats = await deliveryService.getDeliveryStats(startDate, endDate);
+      const stats = await deliveryService.getDeliveryStats(
+        startDate || defaultStartDate, 
+        endDate || defaultEndDate
+      );
 
       res.json({
         success: true,

@@ -1,4 +1,4 @@
-const { Sequelize } = require('sequelize');
+const { Sequelize, Op, Transaction } = require('sequelize');
 const config = require('./config');
 
 const sequelize  = new Sequelize(
@@ -53,5 +53,7 @@ const DBconnect = async () => {
 
 module.exports = {
     sequelize,
-    DBconnect
+    DBconnect,
+    Op,
+    Transaction
 };

@@ -81,6 +81,7 @@ class RequestService {
       const request = await TransportationRequest.findByPk(requestId, {
         include: [{
           model: Delivery,
+          as: 'Delivery',
           required: false
         }]
       });
