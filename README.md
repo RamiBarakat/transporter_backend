@@ -261,7 +261,6 @@ Format as JSON with these exact keys...
 - **Query Optimization**: Raw SQL for complex aggregations
 - **Batch Operations**: Bulk insert/update patterns
 - **Connection Pooling**: Proper database connection management
-- **Caching Strategy**: Redis integration points
 
 ### AI Development Insights
 
