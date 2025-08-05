@@ -8,9 +8,7 @@ class DashboardController {
   static async getKPIData(req, res) {
     try {
       const { startDate, endDate } = req.query;
-      
-      console.log(`Dashboard KPI request: ${startDate} to ${endDate}`);
-      
+            
       const kpiData = await dashboardService.calculateKPIMetrics(startDate, endDate);
       
       res.json({
@@ -37,9 +35,7 @@ class DashboardController {
   static async getPerformanceTrends(req, res) {
     try {
       const { startDate, endDate } = req.query;
-      
-      console.log(`Dashboard Trends request: ${startDate} to ${endDate}`);
-      
+            
       const trendsData = await dashboardService.calculatePerformanceTrends(startDate, endDate);
       
       res.json({
@@ -66,9 +62,7 @@ class DashboardController {
   static async getAIInsights(req, res) {
     try {
       const { startDate, endDate } = req.query;
-      
-      console.log(`Dashboard AI Insights request: ${startDate} to ${endDate}`);
-      
+            
       const aiInsights = await dashboardService.generateAIInsights(startDate, endDate);
       
       res.json({
@@ -95,9 +89,7 @@ class DashboardController {
   static async getTransporterComparison(req, res) {
     try {
       const { startDate, endDate } = req.query;
-      
-      console.log(`Dashboard Transporter Comparison request: ${startDate} to ${endDate}`);
-      
+            
       const comparisonData = await dashboardService.calculateTransporterComparison(startDate, endDate);
       
       res.json({

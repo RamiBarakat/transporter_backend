@@ -19,7 +19,6 @@ class DashboardAIService extends BaseAIService {
       const prompt = this.buildDashboardInsightPrompt(insights, startDate, endDate);
       const aiResponse = await this.generateContent(prompt);
       
-      //console.log(aiResponse, "here is ai response");
       
       // Parse the JSON response with fallback
       const additionalInsights = this.parseJSONResponse(aiResponse, this.generateFallbackAIInsights(insights));
@@ -122,7 +121,6 @@ Return ONLY the JSON array, no other text.`;
   }
 
   assessRiskLevel(insights) {
-    //console.log(insights, "here is insights");
     const highRiskIndicators = insights.filter(insight => 
       insight.severity === 'high' || 
       insight?.description?.toLowerCase().includes('risk') ||

@@ -89,11 +89,8 @@ class DeliveryController {
    */
   async logDeliveryWithDrivers(req, res) {
     try {
-      console.log('=== Controller logDeliveryWithDrivers ===');
-      console.log('Request body:', JSON.stringify(req.body, null, 2));
       
       const requestId = parseInt(req.params.requestId);
-      console.log('Request ID:', requestId);
 
       if (isNaN(requestId)) {
         return res.status(400).json({
@@ -104,10 +101,8 @@ class DeliveryController {
 
       // Validate delivery with drivers data
       const validation = validateRequest(req.body, deliveryWithDriversSchema);
-      console.log('Validation result:', validation);
       
       if (!validation.isValid) {
-        console.log('Validation failed:', validation.errors);
         return res.status(400).json({
           success: false,
           message: 'Validation failed',
@@ -115,11 +110,9 @@ class DeliveryController {
         });
       }
 
-      console.log('Calling deliveryService.logDeliveryWithDrivers...');
       // Log delivery with drivers
       const result = await deliveryService.logDeliveryWithDrivers(requestId, validation.data);
 
-      console.log(`Delivery with drivers logged for request ID: ${requestId}`);
 
       return res.status(201).json({
         success: true,
@@ -173,7 +166,6 @@ class DeliveryController {
         });
       }
 
-      console.log(`Confirming delivery completion for request ID: ${requestId}`);
       
       const result = await deliveryService.confirmDeliveryCompletion(requestId);
 
@@ -313,7 +305,6 @@ class DeliveryController {
         });
       }
 
-      console.log(`Updating delivery for request ID: ${requestId}`);
       
       const result = await deliveryService.updateDelivery(requestId, validation.data);
 

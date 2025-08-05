@@ -22,7 +22,6 @@ class RequestController {
       }
 
       const request = await requestService.createRequest(validation.data);
-      console.log(`Request created: ${request.requestNumber} by ${request.createdBy}`);
 
       res.status(201).json({
         success: true,
@@ -131,14 +130,11 @@ class RequestController {
         });
       }
 
-      console.log(validation.data, "here1");
-      console.log(req.body, "here2");
 
       // Update request
       const request = await requestService.updateRequest(requestId, validation.data);
       
       // Log request update
-      console.log(`Request updated: ${request.requestNumber}`);
 
       res.status(200).json({
         success: true,
@@ -184,9 +180,6 @@ class RequestController {
       }
 
       await requestService.deleteRequest(requestId);
-
-      // Log request deletion
-      console.log(`Request deleted: ID ${requestId}`);
 
       res.status(200).json({
         success: true,

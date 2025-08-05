@@ -11,8 +11,6 @@ class AIService extends BaseAIService {
       const prompt = this.buildDriverInsightPrompt(driverData);
       const aiResponse = await this.generateContent(prompt);
       
-      console.log('AI Response:', aiResponse);
-
       // Parse the JSON response with fallback
       const fallback = {
         overall: 'AI analysis temporarily unavailable. Driver performance appears within normal parameters.',

@@ -34,7 +34,6 @@ class DashboardService {
       ]);
 
       //add line break between them
-      //console.log(onTimeDeliveryData, costVarianceData, fleetUtilizationData, driverPerformanceData, previousPeriodData);
       // Calculate trends (comparison with previous period)
       const trends = kpiHelpers.calculateTrends(
         {
@@ -221,14 +220,12 @@ class DashboardService {
       const deliveryInsights = analysisHelpers.processDeliveryInsights(timePatterns);
       insights.push(...deliveryInsights);
 
-      //console.log(insights, "here is insights");
       // Generate AI-enhanced insights using the collected data
       const enhancedInsights = await dashboardAiService.generateEnhancedAIInsights(
         insights,
         startDate,
         endDate
       );
-      //console.log(enhancedInsights, "here is enhanced insights");
 
       return enhancedInsights;
     } catch (error) {

@@ -107,7 +107,6 @@ class DeliveryService {
 
         if (delivery && request.status === 'processing') {
           // Re-logging scenario: delete existing delivery and create new one
-          console.log(`Re-logging delivery for request ${requestId} - removing existing delivery`);
           await delivery.destroy({ transaction });
           
           // Also clean up existing driver ratings for this delivery

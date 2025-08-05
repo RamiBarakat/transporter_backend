@@ -98,7 +98,6 @@ class RequestService {
         throw new Error('Request not found');
       }
 
-      console.log(request);
       return this.requestHelper.formatRequestResponse(request);
     } catch (error) {
       throw new Error(`Failed to retrieve request: ${error.message}`);
@@ -124,7 +123,6 @@ class RequestService {
       await transaction.commit();
 
       const updatedRequest = await this.getRequestById(requestId);
-      console.log(updatedRequest, "here");
       return updatedRequest;
     } catch (error) {
       await transaction.rollback();

@@ -47,7 +47,6 @@ class DriverController {
         });
       }
       
-      console.log(validation.data);
       const result = await driverService.searchDrivers(validation.data);
 
       res.status(200).json({

@@ -100,7 +100,6 @@ class DriverService {
         offset: offset
       });
 
-      console.log(`Found ${result.count} drivers, returning ${result.rows.length} for page ${page}`);
 
       // Calculate pagination metadata
       const totalPages = Math.ceil(result.count / limit);
@@ -136,8 +135,6 @@ class DriverService {
         limit: parseInt(limit),
         offset: offset
       });
-
-      console.log(`Found ${result.count} recent drivers, returning ${result.rows.length} for page ${page}`);
 
       // Calculate pagination metadata
       const totalPages = Math.ceil(result.count / limit);
