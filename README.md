@@ -90,7 +90,7 @@ Once running, access the API documentation at: `http://localhost:3000/api`
 - Comprehensive delivery statistics
 
 #### **Phase 3: Performance Comparison Engine ✅**
-- Real-time KPI calculations
+- KPI calculations
 - AI-powered performance insights
 - Route optimization analysis in dashboards
 - Cost variance tracking
