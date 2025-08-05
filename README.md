@@ -163,7 +163,7 @@ const stats = await sequelize.query(`
 
 **Impact:**
 - Complex queries implemented in minutes vs. hours
-- 10x performance improvement over ORM approach
+- 1performance improvement and more control over ORM approach
 
 #### 3. **Transaction Flow Innovation**
 
