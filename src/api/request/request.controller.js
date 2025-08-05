@@ -221,200 +221,104 @@ class RequestController {
   }
 
 
-  async logDeliveryCompletion(req, res) {
-    try {
-      console.log('=== Controller logDeliveryCompletion ===');
-      console.log('Request body:', JSON.stringify(req.body, null, 2));
+
+  // async confirmDeliveryCompletion(req, res) {
+  //   try {
+  //     const requestId = parseInt(req.params.id);
+  //     if (isNaN(requestId)) {
+  //       return res.status(400).json({
+  //         success: false,
+  //         message: 'Invalid request ID'
+  //       });
+  //     }
+
+  //     console.log(`Confirming delivery completion for request ID: ${requestId}`);
       
-      const requestId = parseInt(req.params.id);
-      console.log('Request ID:', requestId);
+  //     const result = await deliveryService.confirmDeliveryCompletion(requestId);
 
-      if (isNaN(requestId)) {
-        return res.status(400).json({
-          success: false,
-          message: 'Invalid request ID'
-        });
-      }
+  //     res.json({
+  //       success: true,
+  //       data: result,
+  //       message: 'Delivery completion confirmed successfully'
+  //     });
 
-      // Check if this is the new driver-based delivery format
-      if (req.body.drivers && Array.isArray(req.body.drivers)) {
-        console.log('Using driver-based delivery format');
-        
-        // Validate delivery with drivers data
-        const validation = validateRequest(req.body, deliveryWithDriversSchema);
-        console.log('Validation result:', validation);
-        
-        if (!validation.isValid) {
-          console.log('Validation failed:', validation.errors);
-          return res.status(400).json({
-            success: false,
-            message: 'Validation failed',
-            errors: validation.errors
-          });
-        }
-
-        console.log('Calling deliveryService.logDeliveryWithDrivers...');
-        // Log delivery with drivers
-        const result = await deliveryService.logDeliveryWithDrivers(requestId, validation.data);
-
-        console.log(`Delivery with drivers logged for request ID: ${requestId}`);
-
-        return res.status(201).json({
-          success: true,
-          message: 'Delivery with drivers logged successfully',
-          data: result
-        });
-      } else {
-        // Legacy delivery format
-        const validation = validateRequest(req.body, createDeliverySchema);
-        if (!validation.isValid) {
-          return res.status(400).json({
-            success: false,
-            message: 'Validation failed',
-            errors: validation.errors
-          });
-        }
-
-        const delivery = await requestService.logDeliveryCompletion(requestId, validation.data);
-
-        console.log(`Delivery logged for request ID: ${requestId} by ${delivery.loggedBy}`);
-
-        return res.status(201).json({
-          success: true,
-          message: 'Delivery completion logged successfully',
-          data: delivery
-        });
-      }
-
-    } catch (error) {
-      console.error('Error logging delivery completion:', error.message);
-
-      if (error.message.includes('not found')) {
-        return res.status(404).json({
-          success: false,
-          message: 'Request not found'
-        });
-      }
-
-      if (error.message.includes('Only planned requests')) {
-        return res.status(400).json({
-          success: false,
-          message: 'Only planned requests can have delivery completion logged'
-        });
-      }
-
-      if (error.message.includes('already logged')) {
-        return res.status(400).json({
-          success: false,
-          message: 'Delivery completion already logged for this request'
-        });
-      }
-
-      res.status(500).json({
-        success: false,
-        message: 'Failed to log delivery completion',
-        error: error.message
-      });
-    }
-  }
-
-  async confirmDeliveryCompletion(req, res) {
-    try {
-      const requestId = parseInt(req.params.id);
-      if (isNaN(requestId)) {
-        return res.status(400).json({
-          success: false,
-          message: 'Invalid request ID'
-        });
-      }
-
-      console.log(`Confirming delivery completion for request ID: ${requestId}`);
+  //   } catch (error) {
+  //     console.error('Delivery confirmation error:', error);
       
-      const result = await deliveryService.confirmDeliveryCompletion(requestId);
+  //     if (error.message.includes('not found')) {
+  //       return res.status(404).json({
+  //         success: false,
+  //         message: 'Request not found',
+  //         error: error.message
+  //       });
+  //     }
 
-      res.json({
-        success: true,
-        data: result,
-        message: 'Delivery completion confirmed successfully'
-      });
+  //     if (error.message.includes('Only processing requests')) {
+  //       return res.status(400).json({
+  //         success: false,
+  //         message: 'Request is not in processing status',
+  //         error: error.message
+  //       });
+  //     }
 
-    } catch (error) {
-      console.error('Delivery confirmation error:', error);
-      
-      if (error.message.includes('not found')) {
-        return res.status(404).json({
-          success: false,
-          message: 'Request not found',
-          error: error.message
-        });
-      }
+  //     res.status(500).json({
+  //       success: false,
+  //       message: 'Failed to confirm delivery completion',
+  //       error: error.message
+  //     });
+  //   }
+  // }
 
-      if (error.message.includes('Only processing requests')) {
-        return res.status(400).json({
-          success: false,
-          message: 'Request is not in processing status',
-          error: error.message
-        });
-      }
+  // async updateDeliveryCompletion(req, res) {
+  //   try {
+  //     const requestId = parseInt(req.params.id);
 
-      res.status(500).json({
-        success: false,
-        message: 'Failed to confirm delivery completion',
-        error: error.message
-      });
-    }
-  }
+  //     if (isNaN(requestId)) {
+  //       return res.status(400).json({
+  //         success: false,
+  //         message: 'Invalid request ID'
+  //       });
+  //     }
 
-  async updateDeliveryCompletion(req, res) {
-    try {
-      const requestId = parseInt(req.params.id);
+  //     // Validate delivery data
+  //     const validation = validateRequest(req.body, updateDeliverySchema);
+  //     if (!validation.isValid) {
+  //       return res.status(400).json({
+  //         success: false,
+  //         message: 'Validation failed',
+  //         errors: validation.errors
+  //       });
+  //     }
 
-      if (isNaN(requestId)) {
-        return res.status(400).json({
-          success: false,
-          message: 'Invalid request ID'
-        });
-      }
+  //     // Update delivery completion
+  //     const delivery = await requestService.updateDeliveryCompletion(requestId, validation.data);
 
-      // Validate delivery data
-      const validation = validateRequest(req.body, updateDeliverySchema);
-      if (!validation.isValid) {
-        return res.status(400).json({
-          success: false,
-          message: 'Validation failed',
-          errors: validation.errors
-        });
-      }
+  //     // Log delivery update
+  //     console.log(`Delivery updated for request ID: ${requestId}`);
 
-      // Update delivery completion
-      const delivery = await requestService.updateDeliveryCompletion(requestId, validation.data);
+  //     res.status(200).json({
+  //       success: true,
+  //       message: 'Delivery completion updated successfully',
+  //       data: delivery
+  //     });
 
-      // Log delivery update
-      console.log(`Delivery updated for request ID: ${requestId}`);
+  //   } catch (error) {
+  //     console.error('Error updating delivery completion:', error.message);
 
-      res.status(200).json({
-        success: true,
-        message: 'Delivery completion updated successfully',
-        data: delivery
-      });
+  //     if (error.message.includes('not found')) {
+  //       return res.status(404).json({
+  //         success: false,
+  //         message: 'Delivery completion not found for this request'
+  //       });
+  //     }
 
-    } catch (error) {
-      console.error('Error updating delivery completion:', error.message);
-
-      if (error.message.includes('not found')) {
-        return res.status(404).json({
-          success: false,
-          message: 'Delivery completion not found for this request'
-        });
-      }
-
-      res.status(500).json({
-        success: false,
-        message: 'Failed to update delivery completion',
-        error: error.message
-      });
-    }
-  }
+  //     res.status(500).json({
+  //       success: false,
+  //       message: 'Failed to update delivery completion',
+  //       error: error.message
+  //     });
+  //   }
+  // }
 
   /**
    * Get performance metrics for a specific request

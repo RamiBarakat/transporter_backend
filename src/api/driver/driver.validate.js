@@ -40,7 +40,7 @@ const updateDriverSchema = Joi.object({
   name: Joi.string().trim().min(2).max(255).optional(),
   type: Joi.string().valid('transporter', 'in_house').optional(),
   transportCompany: Joi.string().trim().min(2).max(255).optional().allow(null, ''),
-  phone: Joi.string().trim().min(10).max(50).optional().allow(null, ''),
+  phone: Joi.string().trim().min(4).max(50).optional().allow(null, ''),
   licenseNumber: Joi.string().trim().min(5).max(100).optional().allow(null, ''),
   employeeId: Joi.string().trim().min(2).max(50).optional().allow(null, ''),
   department: Joi.string().trim().min(2).max(100).optional().allow(null, ''),

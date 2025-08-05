@@ -58,7 +58,9 @@ class RequestService {
       });
 
       const totalPages = Math.ceil(count / limit);
-      console.log(count, rows);
+      const total_completed_requests = await TransportationRequest.count({ where: { status: 'completed' } });
+      const total_planned_requests = await TransportationRequest.count({ where: { status: 'planned' } });
+      
       return {
         requests: rows.map(request => this.formatRequestResponse(request)),
         pagination: {
@@ -67,8 +69,11 @@ class RequestService {
           totalItems: count,
           itemsPerPage: parseInt(limit),
           hasNextPage: page < totalPages,
-          hasPrevPage: page > 1
+          hasPrevPage: page > 1,
+          total_completed_requests,
+          total_planned_requests
         }
+        
       };
     } catch (error) {
       throw new Error(`Failed to retrieve requests: ${error.message}`);
@@ -148,67 +153,67 @@ class RequestService {
     }
   }
 
-  async logDeliveryCompletion(requestId, deliveryData) {
-    const transaction = await sequelize.transaction();
+  // async logDeliveryCompletion(requestId, deliveryData) {
+  //   const transaction = await sequelize.transaction();
     
-    try {
-      const request = await TransportationRequest.findByPk(requestId, { transaction });
+  //   try {
+  //     const request = await TransportationRequest.findByPk(requestId, { transaction });
 
-      if (!request) {
-        throw new Error('Request not found');
-      }
+  //     if (!request) {
+  //       throw new Error('Request not found');
+  //     }
 
-      if (request.status !== 'planned') {
-        throw new Error('Only planned requests can have delivery completion logged');
-      }
+  //     if (request.status !== 'planned') {
+  //       throw new Error('Only planned requests can have delivery completion logged');
+  //     }
 
-      // Check if delivery already exists
-      const existingDelivery = await DeliveryCompletion.findOne({
-        where: { requestId },
-        transaction
-      });
+  //     // Check if delivery already exists
+  //     const existingDelivery = await DeliveryCompletion.findOne({
+  //       where: { requestId },
+  //       transaction
+  //     });
 
-      if (existingDelivery) {
-        throw new Error('Delivery completion already logged for this request');
-      }
+  //     if (existingDelivery) {
+  //       throw new Error('Delivery completion already logged for this request');
+  //     }
 
-      const delivery = await DeliveryCompletion.create({
-        ...deliveryData,
-        requestId
-      }, { transaction });
+  //     const delivery = await DeliveryCompletion.create({
+  //       ...deliveryData,
+  //       requestId
+  //     }, { transaction });
 
-      await transaction.commit();
+  //     await transaction.commit();
 
-      return this.formatDeliveryResponse(delivery);
-    } catch (error) {
-      await transaction.rollback();
-      throw new Error(`Failed to log delivery completion: ${error.message}`);
-    }
-  }
+  //     return this.formatDeliveryResponse(delivery);
+  //   } catch (error) {
+  //     await transaction.rollback();
+  //     throw new Error(`Failed to log delivery completion: ${error.message}`);
+  //   }
+  // }
 
  
-  async updateDeliveryCompletion(requestId, updateData) {
-    const transaction = await sequelize.transaction();
+  // async updateDeliveryCompletion(requestId, updateData) {
+  //   const transaction = await sequelize.transaction();
     
-    try {
-      const delivery = await DeliveryCompletion.findOne({
-        where: { requestId },
-        transaction
-      });
+  //   try {
+  //     const delivery = await DeliveryCompletion.findOne({
+  //       where: { requestId },
+  //       transaction
+  //     });
 
-      if (!delivery) {
-        throw new Error('Delivery completion not found for this request');
-      }
+  //     if (!delivery) {
+  //       throw new Error('Delivery completion not found for this request');
+  //     }
 
-      await delivery.update(updateData, { transaction });
-      await transaction.commit();
+  //     await delivery.update(updateData, { transaction });
+  //     await transaction.commit();
 
-      return this.formatDeliveryResponse(delivery);
-    } catch (error) {
-      await transaction.rollback();
-      throw new Error(`Failed to update delivery completion: ${error.message}`);
-    }
-  }
+  //     return this.formatDeliveryResponse(delivery);
+  //   } catch (error) {
+  //     await transaction.rollback();
+  //     throw new Error(`Failed to update delivery completion: ${error.message}`);
+  //   }
+  // }
 
   /**
    * Get performance metrics for a specific request
@@ -282,11 +287,7 @@ class RequestService {
     }
   }
 
-  /**
-   * Get overall performance summary
-   * @param {Object} dateRange - Optional date range filter
-   * @returns {Promise<Object>} Performance summary
-   */
+
   async getPerformanceSummary(dateRange = {}) {
     try {
       const { dateFrom, dateTo } = dateRange;

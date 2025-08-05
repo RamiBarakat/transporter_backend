@@ -1,4 +1,4 @@
-const dashboardAiService = require('../../services/dashboardAiService');
+const dashboardAiService = require('../AI/dashboardAiService');
 
 // Import query modules
 const kpiQueries = require('./queries/kpiQueries');

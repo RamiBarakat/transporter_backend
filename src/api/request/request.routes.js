@@ -13,35 +13,7 @@ router.put('/:id', requestController.updateRequest);
 
 router.delete('/:id', requestController.deleteRequest);
 
-// ============================================================================
-// PHASE 2 - DELIVERY LOGGING ROUTES
-// ============================================================================
-
-router.post('/:id/delivery', requestController.logDeliveryCompletion);
-
-router.post('/:id/delivery/confirm', requestController.confirmDeliveryCompletion);
-
-router.put('/:id/delivery', requestController.updateDeliveryCompletion);
-
-// ============================================================================
-// PHASE 3 - PERFORMANCE REPORTING ROUTES
-// ============================================================================
-
-router.get('/:id/performance', requestController.getRequestPerformance);
-
-router.get('/dashboard/stats', requestController.getDashboardStats);
-
-router.get('/performance/summary', requestController.getPerformanceSummary);
-
-// ============================================================================
-// UTILITY ROUTES
-// ============================================================================
-
 router.get('/health', requestController.healthCheck);
-
-// ============================================================================
-// MIDDLEWARE FOR ERROR HANDLING
-// ============================================================================
 
 router.use((error, req, res, next) => {
   console.error('Request route error:', error);
