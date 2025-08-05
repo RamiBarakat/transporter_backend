@@ -2,8 +2,13 @@ const { sequelize, Transaction, Op } = require('../../config/db');
 const { TransportationRequest } = require('../request/request.model');
 const { Driver } = require('../driver/driver.model');
 const { Delivery, DriverRating } = require('./delivery.model');
+const DeliveryHelper = require('./delivery.helper');
 
 class DeliveryService {
+
+  constructor() {
+    this.deliveryHelper = new DeliveryHelper();
+  }
 
   /**
    * Get all deliveries with pagination and optional date filtering
@@ -13,13 +18,7 @@ class DeliveryService {
       const { page = 1, limit = 10, startDate, endDate } = options;
       const offset = (page - 1) * limit;
 
-      const whereClause = {};
-      
-      if (startDate && endDate) {
-        whereClause.actualPickupDateTime = {
-          [Op.between]: [new Date(startDate), new Date(endDate)]
-        };
-      }
+      const whereClause = this.deliveryHelper.buildDateRangeFilter(startDate, endDate);
 
       const result = await Delivery.findAndCountAll({
         where: whereClause,
@@ -35,19 +34,7 @@ class DeliveryService {
         offset: offset
       });
 
-      const totalPages = Math.ceil(result.count / limit);
-
-      return {
-        data: result.rows,
-        pagination: {
-          total: result.count,
-          totalPages,
-          currentPage: parseInt(page),
-          limit: parseInt(limit),
-          hasNextPage: page < totalPages,
-          hasPreviousPage: page > 1
-        }
-      };
+      return this.deliveryHelper.formatPaginationResponse(result, page, limit);
     } catch (error) {
       throw new Error(`Failed to get all deliveries: ${error.message}`);
     }
@@ -182,24 +169,7 @@ class DeliveryService {
           }
 
           // Handle rating data - support both nested and flat formats
-          let ratingData;
-          if (driverData.rating) {
-            // Nested format (existing)
-            ratingData = driverData.rating;
-          } else {
-            // Flat format (simplified) - ratings are directly on the driver object
-            ratingData = {
-              punctuality: driverData.punctuality,
-              professionalism: driverData.professionalism,
-              deliveryQuality: driverData.deliveryQuality,
-              communication: driverData.communication,
-              safety: driverData.safety,
-              policyCompliance: driverData.policyCompliance,
-              fuelEfficiency: driverData.fuelEfficiency,
-              overall: driverData.overall,
-              comments: driverData.comments
-            };
-          }
+          const ratingData = this.deliveryHelper.extractRatingData(driverData);
 
           // Create rating record
           await DriverRating.create({
@@ -217,13 +187,11 @@ class DeliveryService {
           }, { transaction });
 
           // Store driver update info for later batch processing
-          driverUpdates.push({
-            id: driver.id,
-            totalDeliveries: driver.totalDeliveries + 1,
-            lastDelivery: new Date()
-          });
+          driverUpdates.push(this.deliveryHelper.formatDriverUpdateData(driver));
 
-          processedDrivers.push(this.formatDriverResponse(driver));
+          // Use driver service for formatting driver response
+          const driverService = require('../driver/driver.service');
+          processedDrivers.push(driverService.driverHelper.formatDriverResponse(driver));
         }
 
         // Update request status to processing (intermediate state)
@@ -251,10 +219,10 @@ class DeliveryService {
           }
         }
 
-        return {
-          delivery: this.formatDeliveryResponse(delivery),
-          drivers: processedDrivers
-        };
+        return this.deliveryHelper.formatDeliverySuccessResponse(
+          this.deliveryHelper.formatDeliveryResponse(delivery),
+          processedDrivers
+        );
 
       } catch (error) {
         console.error('=== Error in logDeliveryWithDrivers ===');
@@ -269,7 +237,7 @@ class DeliveryService {
           
           if (retryCount < maxRetries) {
             // Wait a bit before retrying with exponential backoff
-            await new Promise(resolve => setTimeout(resolve, Math.pow(2, retryCount) * 1000));
+            await new Promise(resolve => setTimeout(resolve, this.deliveryHelper.calculateRetryDelay(retryCount)));
             continue;
           }
         }
@@ -304,12 +272,7 @@ class DeliveryService {
       
       await transaction.commit();
       
-      return {
-        success: true,
-        message: 'Delivery confirmed as completed',
-        requestId: requestId,
-        status: 'completed'
-      };
+      return this.deliveryHelper.formatDeliveryConfirmationResponse(requestId, 'completed');
       
     } catch (error) {
       await transaction.rollback();
@@ -318,23 +281,7 @@ class DeliveryService {
   }
 
 
-  formatDeliveryResponse(delivery) {
-    return {
-      id: delivery.id,
-      requestId: delivery.requestId,
-      actualPickupDateTime: delivery.actualPickupDateTime,
-      actualTruckCount: delivery.actualTruckCount,
-      invoiceAmount: delivery.invoiceAmount,
-      deliveryNotes: delivery.deliveryNotes,
-      loggedBy: delivery.loggedBy,
-      loggedAt: delivery.loggedAt
-    };
-  }
 
-  formatDriverResponse(driver) {
-    const driverService = require('../driver/driver.service');
-    return driverService.formatDriverResponse(driver);
-  }
 
 
   async getDeliveryByRequestId(requestId) {
@@ -355,7 +302,7 @@ class DeliveryService {
         throw new Error('Delivery not found for this request');
       }
 
-      return this.formatDeliveryResponse(delivery);
+      return this.deliveryHelper.formatDeliveryResponse(delivery);
     } catch (error) {
       throw new Error(`Failed to get delivery: ${error.message}`);
     }
@@ -382,37 +329,7 @@ class DeliveryService {
       }
 
       // Format for easy editing
-      return {
-        delivery: {
-          id: delivery.id,
-          requestId: delivery.requestId,
-          actualPickupDateTime: delivery.actualPickupDateTime,
-          actualTruckCount: delivery.actualTruckCount,
-          invoiceAmount: delivery.invoiceAmount,
-          deliveryNotes: delivery.deliveryNotes,
-          loggedAt: delivery.loggedAt
-        },
-        drivers: delivery.DriverRatings.map(rating => ({
-          ratingId: rating.id,
-          driver: {
-            id: rating.Driver.id,
-            name: rating.Driver.name,
-            type: rating.Driver.type,
-            transportCompany: rating.Driver.transportCompany
-          },
-          ratings: {
-            punctuality: rating.punctuality,
-            professionalism: rating.professionalism,
-            deliveryQuality: rating.deliveryQuality,
-            communication: rating.communication,
-            safety: rating.safety,
-            policyCompliance: rating.policyCompliance,
-            fuelEfficiency: rating.fuelEfficiency,
-            comments: rating.comments,
-            overallRating: rating.overallRating
-          }
-        }))
-      };
+      return this.deliveryHelper.formatDeliveryForEdit(delivery);
     } catch (error) {
       throw new Error(`Failed to get delivery for editing: ${error.message}`);
     }
@@ -451,14 +368,10 @@ class DeliveryService {
         });
 
         // Get submitted rating IDs (filter out null/undefined)
-        const submittedRatingIds = updateData.drivers
-          .map(d => d.ratingId)
-          .filter(Boolean);
+        const submittedRatingIds = this.deliveryHelper.extractSubmittedRatingIds(updateData.drivers);
 
         // Find ratings to delete (existing ratings not in submitted data)
-        const ratingsToDelete = existingRatings.filter(rating => 
-          !submittedRatingIds.includes(rating.id)
-        );
+        const ratingsToDelete = this.deliveryHelper.findRatingsToDelete(existingRatings, submittedRatingIds);
 
         // Delete removed drivers' ratings
         if (ratingsToDelete.length > 0) {
@@ -553,21 +466,7 @@ class DeliveryService {
         replacements: { startDate, endDate }
       });
 
-      // Calculate on-time percentage (simplified - assumes deliveries are on time if they exist)
-      const totalDeliveries = basicStats[0]?.totalDeliveries || 0;
-      const onTimePercentage = totalDeliveries > 0 ? 
-        Math.round((totalDeliveries * 0.8) * 100) / 100 : 0; 
-
-      const result = {
-        totalDeliveries: parseInt(basicStats[0]?.totalDeliveries || 0),
-        avgTruckCount: parseFloat(basicStats[0]?.avgTruckCount || 0),
-        totalRevenue: parseFloat(basicStats[0]?.totalRevenue || 0),
-        avgInvoiceAmount: parseFloat(basicStats[0]?.avgInvoiceAmount || 0),
-        averageRating: parseFloat(ratingStats[0]?.averageRating || 0),
-        onTimePercentage: onTimePercentage
-      };
-
-      return result;
+      return this.deliveryHelper.parseDeliveryStats(basicStats, ratingStats);
     } catch (error) {
       throw new Error(`Failed to get delivery statistics: ${error.message}`);
     }

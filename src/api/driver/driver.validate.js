@@ -10,7 +10,7 @@ const createDriverSchema = Joi.object({
   }),
   phone: Joi.when('type', {
     is: 'transporter',
-    then: Joi.string().trim().min(10).max(50).required(),
+    then: Joi.string().trim().min(4).max(50).required(),
     otherwise: Joi.optional()
   }),
   licenseNumber: Joi.when('type', {

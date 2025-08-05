@@ -85,6 +85,14 @@ const TransportationRequest = sequelize.define('TransportationRequest', {
   deletedAt: 'deleted_at',
   createdAt: 'created_at',
   updatedAt: 'updated_at',
+  indexes: [
+    {
+      fields: ['status']
+    },
+    {
+      fields: ['pickup_datetime']
+    }
+  ]
 });
 
 TransportationRequest.prototype.getPerformanceMetrics = function() {

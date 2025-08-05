@@ -57,7 +57,12 @@ const Delivery = sequelize.define('Delivery', {
   createdAt: 'created_at',
   paranoid: true,
   deletedAt: 'deleted_at',
-  updatedAt: 'updated_at'
+  updatedAt: 'updated_at',
+  indexes: [
+    {
+      fields: ['actual_pickup_datetime']
+    }
+  ]
 });
 
 /**
@@ -142,7 +147,15 @@ const DriverRating = sequelize.define('DriverRating', {
   createdAt: 'created_at',
   updatedAt: 'updated_at',
   paranoid: true,
-  deletedAt: 'deleted_at'
+  deletedAt: 'deleted_at',
+  indexes: [
+    {
+      fields: ['delivery_id']
+    },
+    {
+      fields: ['driver_id']
+    }
+  ]
 });
 
 module.exports = {

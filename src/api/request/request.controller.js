@@ -1,14 +1,10 @@
 const requestService = require('./request.service');
-const deliveryService = require('../delivery/delivery.service');
 const {
   validateRequest,
   createRequestSchema,
   updateRequestSchema,
-  createDeliverySchema,
-  updateDeliverySchema,
   querySchema
 } = require('./request.validate');
-const { deliveryWithDriversSchema } = require('../driver/driver.validate');
 
 
 class RequestController {
@@ -126,7 +122,6 @@ class RequestController {
         });
       }
 
-      // Validate request data
       const validation = validateRequest(req.body, updateRequestSchema);
       if (!validation.isValid) {
         return res.status(400).json({
@@ -136,9 +131,12 @@ class RequestController {
         });
       }
 
+      console.log(validation.data, "here1");
+      console.log(req.body, "here2");
+
       // Update request
       const request = await requestService.updateRequest(requestId, validation.data);
-
+      
       // Log request update
       console.log(`Request updated: ${request.requestNumber}`);
 
@@ -221,110 +219,6 @@ class RequestController {
   }
 
 
-
-  // async confirmDeliveryCompletion(req, res) {
-  //   try {
-  //     const requestId = parseInt(req.params.id);
-  //     if (isNaN(requestId)) {
-  //       return res.status(400).json({
-  //         success: false,
-  //         message: 'Invalid request ID'
-  //       });
-  //     }
-
-  //     console.log(`Confirming delivery completion for request ID: ${requestId}`);
-      
-  //     const result = await deliveryService.confirmDeliveryCompletion(requestId);
-
-  //     res.json({
-  //       success: true,
-  //       data: result,
-  //       message: 'Delivery completion confirmed successfully'
-  //     });
-
-  //   } catch (error) {
-  //     console.error('Delivery confirmation error:', error);
-      
-  //     if (error.message.includes('not found')) {
-  //       return res.status(404).json({
-  //         success: false,
-  //         message: 'Request not found',
-  //         error: error.message
-  //       });
-  //     }
-
-  //     if (error.message.includes('Only processing requests')) {
-  //       return res.status(400).json({
-  //         success: false,
-  //         message: 'Request is not in processing status',
-  //         error: error.message
-  //       });
-  //     }
-
-  //     res.status(500).json({
-  //       success: false,
-  //       message: 'Failed to confirm delivery completion',
-  //       error: error.message
-  //     });
-  //   }
-  // }
-
-  // async updateDeliveryCompletion(req, res) {
-  //   try {
-  //     const requestId = parseInt(req.params.id);
-
-  //     if (isNaN(requestId)) {
-  //       return res.status(400).json({
-  //         success: false,
-  //         message: 'Invalid request ID'
-  //       });
-  //     }
-
-  //     // Validate delivery data
-  //     const validation = validateRequest(req.body, updateDeliverySchema);
-  //     if (!validation.isValid) {
-  //       return res.status(400).json({
-  //         success: false,
-  //         message: 'Validation failed',
-  //         errors: validation.errors
-  //       });
-  //     }
-
-  //     // Update delivery completion
-  //     const delivery = await requestService.updateDeliveryCompletion(requestId, validation.data);
-
-  //     // Log delivery update
-  //     console.log(`Delivery updated for request ID: ${requestId}`);
-
-  //     res.status(200).json({
-  //       success: true,
-  //       message: 'Delivery completion updated successfully',
-  //       data: delivery
-  //     });
-
-  //   } catch (error) {
-  //     console.error('Error updating delivery completion:', error.message);
-
-  //     if (error.message.includes('not found')) {
-  //       return res.status(404).json({
-  //         success: false,
-  //         message: 'Delivery completion not found for this request'
-  //       });
-  //     }
-
-  //     res.status(500).json({
-  //       success: false,
-  //       message: 'Failed to update delivery completion',
-  //       error: error.message
-  //     });
-  //   }
-  // }
-
-  /**
-   * Get performance metrics for a specific request
-   * @param {Object} req - Express request object
-   * @param {Object} res - Express response object
-   */
   async getRequestPerformance(req, res) {
     try {
       const requestId = parseInt(req.params.id);
@@ -362,11 +256,7 @@ class RequestController {
     }
   }
 
-  /**
-   * Get dashboard statistics
-   * @param {Object} req - Express request object
-   * @param {Object} res - Express response object
-   */
+
   async getDashboardStats(req, res) {
     try {
       const stats = await requestService.getDashboardStats();
@@ -387,11 +277,7 @@ class RequestController {
     }
   }
 
-  /**
-   * Get overall performance summary
-   * @param {Object} req - Express request object
-   * @param {Object} res - Express response object
-   */
+ 
   async getPerformanceSummary(req, res) {
     try {
       // Validate date range if provided
@@ -421,11 +307,7 @@ class RequestController {
     }
   }
 
-  /**
-   * Health check endpoint
-   * @param {Object} req - Express request object
-   * @param {Object} res - Express response object
-   */
+
   async healthCheck(req, res) {
     try {
       res.status(200).json({

@@ -133,7 +133,8 @@ const updateRequestSchema = Joi.object({
       'string.max': 'Destination cannot exceed 255 characters'
     }),
 
-  distanceMiles: Joi.number()
+  // Match create schema field name
+  estimatedDistance: Joi.number()
     .positive()
     .precision(2)
     .max(9999999.99)
@@ -143,30 +144,25 @@ const updateRequestSchema = Joi.object({
       'number.max': 'Distance cannot exceed 9,999,999.99 miles'
     }),
 
-  plannedPickupDate: Joi.date()
+  // Match create schema field name
+  pickUpDateTime: Joi.date()
     .iso()
     .min('now')
     .optional()
     .messages({
-      'date.base': 'Planned pickup date must be a valid date',
-      'date.min': 'Planned pickup date cannot be in the past'
+      'date.base': 'Pickup date/time must be a valid date',
+      'date.min': 'Pickup date/time cannot be in the past'
     }),
 
-  plannedPickupTime: Joi.string()
-    .pattern(/^([01]?[0-9]|2[0-3]):[0-5][0-9]$/)
-    .optional()
-    .messages({
-      'string.pattern.base': 'Planned pickup time must be in HH:MM format (24-hour)'
-    }),
-
-  requiredTrucks: Joi.number()
+  // Match create schema field name
+  truckCount: Joi.number()
     .integer()
     .min(1)
     .max(50)
     .optional()
     .messages({
-      'number.base': 'Required trucks must be a number',
-      'number.integer': 'Required trucks must be a whole number',
+      'number.base': 'Truck count must be a number',
+      'number.integer': 'Truck count must be a whole number',
       'number.min': 'At least 1 truck is required',
       'number.max': 'Cannot exceed 50 trucks'
     }),

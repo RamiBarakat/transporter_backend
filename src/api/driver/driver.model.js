@@ -64,7 +64,12 @@ const Driver = sequelize.define('Driver', {
     createdAt: 'created_at',
     paranoid: true,
     deletedAt: 'deleted_at',
-    updatedAt: 'updated_at'
+    updatedAt: 'updated_at',
+    indexes: [
+      {
+        fields: ['type']
+      }
+    ]
   });
 
 module.exports = {
